@@ -15,7 +15,8 @@ help: ## Lista los targets disponibles
 	@echo "  reproduce   destroy + apply + prueba e2e, cronometrado            [Fase 7]"
 
 bootstrap: ## Crea el remote state (bucket S3 + tabla DynamoDB)
-	@echo "TODO: Fase 1 - cd terraform/bootstrap && terraform init && terraform apply"
+	terraform -chdir=terraform/bootstrap init
+	terraform -chdir=terraform/bootstrap apply
 
 deploy: ## terraform apply del stack principal
 	@echo "TODO: Fase 5 - cd terraform/environments/dev && terraform init && terraform apply"

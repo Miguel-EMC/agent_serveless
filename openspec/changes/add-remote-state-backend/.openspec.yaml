@@ -1,0 +1,4 @@
+schema: spec-driven
+created: 2026-09-02
+goal: Crear el backend de Terraform (bucket S3 + tabla DynamoDB de lock) en
+  terraform/bootstrap/ con state local, base de todo el stack

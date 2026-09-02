@@ -2,6 +2,10 @@
 .terraform/
 *.tfstate
 *.tfstate.*
+# Excepción: el state del bootstrap SÍ se versiona (sin secretos; hace el
+# bootstrap del remote state reproducible). NO aplica al stack principal.
+!terraform/bootstrap/terraform.tfstate
+!terraform/bootstrap/terraform.tfstate.backup
 crash.log
 crash.*.log
 override.tf
