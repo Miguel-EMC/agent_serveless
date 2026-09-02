@@ -1,0 +1,5 @@
+schema: spec-driven
+created: 2026-09-02
+skip_specs: true
+goal: Establecer el layout de carpetas del monorepo y el contexto OpenSpec del
+  proyecto antes de construir la infraestructura por fases

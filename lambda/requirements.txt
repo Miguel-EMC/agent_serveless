@@ -1,0 +1,2 @@
+# Sin dependencias de runtime: boto3 (con el SDK de Bedrock) ya viene incluido
+# en el runtime de AWS Lambda para Python. Vacío a propósito.

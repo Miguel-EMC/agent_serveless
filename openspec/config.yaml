@@ -1,0 +1,64 @@
+schema: spec-driven
+
+context: |
+  Proyecto: agente RAG 100% serverless en AWS, para una charla de AWS Community
+  Day Ecuador (Cuenca). Miguel actúa como arquitecto: aprueba cada fase antes de
+  avanzar. Se construye una fase por sesión, con un commit por fase, en una rama
+  dedicada (nunca en main directamente).
+
+  Arquitectura (ya decidida — no proponer alternativas, solo construirla):
+  - S3: documentos fuente del caso de uso ficticio.
+  - Amazon Bedrock Knowledge Base: ingesta + chunking (512 tokens, 20% overlap),
+    embeddings con Amazon Titan Text Embeddings.
+  - RDS PostgreSQL + pgvector como vector store (free tier: db.t3.micro, 20GB).
+    NO Aurora, NO OpenSearch Serverless.
+  - AWS Lambda: orquesta el agente en Python puro con boto3 (el SDK de Bedrock
+    es parte de boto3). SIN LangChain / LangGraph / LlamaIndex — cada paso
+    (retrieval, prompt, llamada al modelo) es código explícito y visible.
+  - Empaquetado: .zip estándar de Lambda. NO Docker, NO ECR (boto3 ya viene en
+    el runtime).
+  - API Gateway: solo se MENCIONA como paso de producción; NO se implementa. El
+    Lambda se invoca directo (consola o AWS CLI).
+  - Amazon Bedrock (modelo): genera la respuesta final citando la fuente.
+
+  Convenciones de infraestructura (obligatorias):
+  - Todo con Terraform desde cero, sin plantillas de terceros. `terraform init`
+    desde carpeta vacía.
+  - Remote state en S3 + locking con DynamoDB. El bootstrap del remote state es
+    una raíz Terraform separada, con state local (su .tfstate se commitea; no
+    tiene secretos). El stack principal sí usa backend "s3".
+  - Un módulo propio por servicio (s3-documents, rds-pgvector, bedrock-kb,
+    agent-lambda, iam). Los roles IAM se co-locan en el módulo del servicio al
+    que sirven; `modules/iam` queda solo para lo transversal.
+  - IAM de mínimo privilegio en cada rol. NUNCA `Action: "*"`.
+  - La prueba real de que la infra está bien hecha: `terraform destroy` de todo
+    el stack (menos el bootstrap) y volver a levantarlo desde cero.
+
+  Stack de desarrollo: Terraform (AWS provider), Python 3.x + boto3, Makefile
+  como punto de entrada del workflow.
+
+  Mapeo de fases -> cambios OpenSpec (Opción A, un cambio por fase): ver
+  docs/architecture.md.
+
+rules:
+  proposal:
+    - "REGLA DE CONFIDENCIALIDAD (nunca romper): el caso de uso es 100% ficticio. Cero arquitectura interna, datos o nombres reales de ningún empleador. Si algo se ve específico de una empresa real, preguntar antes de escribirlo."
+    - "No proponer alternativas a la arquitectura ya decidida (S3 + Bedrock KB + RDS/pgvector + Lambda Python puro). El alcance es construirla, no cuestionarla."
+    - "Cada fase es un cambio pequeño y aprobable en una sesión; no agrupar varias fases en una propuesta."
+  design:
+    - "Documentar siempre las alternativas consideradas y por qué se descartaron, sobre todo en integraciones poco documentadas (ej. Bedrock KB con RDS como vector store)."
+    - "Si una integración es compleja o poco documentada, decir explícitamente las dificultades antes de proponer una solución que no se pueda validar."
+    - "Todo rol IAM del diseño debe ser de mínimo privilegio y enumerar sus acciones concretas; nunca `Action: \"*\"`."
+  tasks:
+    - "Cada tarea incluye su verificación (comando, test o artefacto observable)."
+    - "Las tareas de diagnóstico (fallos e2e) revisan logs de CloudWatch antes de proponer un fix; no aplicar cambios a ciegas."
+    - "Un commit por fase, con mensaje que termina en la línea Co-Authored-By acordada."
+
+operations:
+  apply:
+    guidance:
+      - "No ejecutar `terraform apply` ni `destroy` sin mostrar antes el plan y esperar aprobación de Miguel."
+      - "Si Terraform necesita un dato de Miguel (región AWS, prefijo de bucket, nombre de cuenta), preguntarlo; no inventarlo."
+  archive:
+    guidance:
+      - "Al archivar una fase, confirmar que el commit de esa fase existe y que la prueba correspondiente pasó."

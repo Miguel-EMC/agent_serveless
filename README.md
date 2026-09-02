@@ -43,14 +43,24 @@ por servicio, e IAM de mínimo privilegio en cada rol.
 ## Estructura del repositorio
 
 ```
+Makefile               # punto de entrada del workflow (make help)
 /terraform
-  /modules            # un módulo por servicio: s3, rds, bedrock-kb, lambda, iam
-  /environments/dev    # configuración del entorno de desarrollo
+  /bootstrap           # remote state (bucket S3 + tabla DynamoDB), state local
+  /modules             # un módulo por servicio:
+                       #   s3-documents, rds-pgvector, bedrock-kb, agent-lambda, iam
+  /environments/dev    # raíz que cablea los módulos; backend "s3"
 /lambda
-  /src                 # código Python del agente
+  /src/agent           # código Python del agente (handler, retrieval, prompt, ...)
   /tests
+  /dist                # .zip construido (gitignored)
+/sample-data           # documentos ficticios que alimentan la Knowledge Base
+/scripts               # helpers: package-lambda, invoke-lambda, sync-knowledge-base
 /docs
+/openspec              # cambios spec-driven, un cambio por fase
 ```
+
+El detalle del layout y las decisiones estructurales están en
+[`docs/architecture.md`](docs/architecture.md).
 
 ## Estado del proyecto
 
