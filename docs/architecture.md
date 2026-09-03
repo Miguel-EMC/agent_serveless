@@ -105,10 +105,10 @@ Los archivos entre paréntesis todavía no existen: se crean en la fase indicada
 | 0.5 | `establish-repo-structure` ✔ archivado | -- (estructura/tooling, `skip_specs`) |
 | 1 | `add-remote-state-backend` ✔ archivado | `infra-reproducibility` |
 | 2 | `add-document-and-vector-stores` ✔ hecho | `document-ingestion`, `infra-reproducibility` |
-| 3a | `switch-vector-store-to-s3-vectors` | `document-ingestion`, `infra-reproducibility` (retira RDS; provider v6) |
+| 3a | `switch-vector-store-to-s3-vectors` ✔ hecho | `document-ingestion`, `infra-reproducibility` (retira RDS; provider v6) |
 | 3b | `add-bedrock-knowledge-base` ✔ hecho | `document-ingestion`, `semantic-retrieval` (S3 Vectors + KB) |
 | 4 | `add-agent-lambda` ✔ hecho | `semantic-retrieval`, `answer-generation` |
-| 5 | `deploy-agent-lambda` | `infra-reproducibility` |
+| 5 | `deploy-agent-lambda` ✔ hecho | `infra-reproducibility` |
 | 6 + 7 | `prove-end-to-end` | valida todas (specs = criterios de aceptación de `infra-reproducibility`) |
 
 Fases 6 y 7 (prueba e2e + reproducibilidad) se juntan en un solo cambio porque
@@ -148,6 +148,12 @@ evento {"question": "..."}  (sin API Gateway)
 Config por env vars (las pone el módulo Lambda en la Fase 5): `KNOWLEDGE_BASE_ID`,
 `MODEL_ID` (default `amazon.nova-lite-v1:0`), `TOP_K` (5), `MIN_SCORE` (0.4).
 Solo `boto3` + stdlib.
+
+**Despliegue (Fase 5):** función Lambda `rag-serverless-demo-agent`, runtime
+`python3.13`, `timeout 30`, `memory 256`, empaquetada con `data "archive_file"`
+(zip de `lambda/src/`). Rol de ejecución de mínimo privilegio: logs sobre su
+propio log group, `bedrock:InvokeModel` sobre `var.model_id`, `bedrock:Retrieve`
+sobre la KB. Sin VPC (S3 Vectors y Bedrock son APIs públicas de AWS).
 
 ## Caveats conocidos
 

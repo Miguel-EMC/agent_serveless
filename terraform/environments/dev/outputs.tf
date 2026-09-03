@@ -17,3 +17,13 @@ output "vector_bucket_name" {
   description = "Nombre del vector bucket de S3 Vectors."
   value       = module.bedrock_kb.vector_bucket_name
 }
+
+output "agent_function_name" {
+  description = "Nombre de la función Lambda del agente."
+  value       = module.agent_lambda.function_name
+}
+
+output "agent_function_arn" {
+  description = "ARN de la función Lambda del agente."
+  value       = module.agent_lambda.function_arn
+}

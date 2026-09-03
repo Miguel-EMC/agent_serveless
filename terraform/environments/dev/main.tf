@@ -17,3 +17,13 @@ module "bedrock_kb" {
   documents_bucket_name = module.s3_documents.bucket_name
   tags                  = var.tags
 }
+
+module "agent_lambda" {
+  source = "../../modules/agent-lambda"
+
+  name_prefix        = local.name_prefix
+  knowledge_base_id  = module.bedrock_kb.knowledge_base_id
+  knowledge_base_arn = module.bedrock_kb.knowledge_base_arn
+  model_id           = var.model_id
+  tags               = var.tags
+}

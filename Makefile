@@ -22,11 +22,11 @@ deploy: ## terraform apply del stack principal (environments/dev)
 	terraform -chdir=terraform/environments/dev init
 	terraform -chdir=terraform/environments/dev apply
 
-package: ## Construye el .zip del Lambda
-	@echo "TODO: Fase 5 - scripts/package-lambda.sh"
+package: ## Construye el .zip del Lambda en lambda/dist/agent.zip
+	scripts/package-lambda.sh
 
-invoke: ## Invoca el Lambda con un evento de ejemplo
-	@echo "TODO: Fase 6 - scripts/invoke-lambda.sh"
+invoke: ## Invoca el Lambda con el evento de ejemplo (o: make invoke Q="tu pregunta")
+	scripts/invoke-lambda.sh $(Q)
 
 destroy: ## terraform destroy del stack principal (conserva el bootstrap)
 	terraform -chdir=terraform/environments/dev destroy

@@ -259,3 +259,70 @@ Se corre en la Fase 6, con documentos ya subidos a `raw/`:
 ```
 scripts/sync-knowledge-base.sh
 ```
+
+---
+
+## Fase 5 - Despliegue del agente (Lambda)
+
+Empaqueta el codigo de la Fase 4 y lo despliega como funcion Lambda con un rol
+de ejecucion de minimo privilegio.
+
+### Pre-check
+
+```
+aws bedrock list-foundation-models \
+  --query "modelSummaries[?modelId=='amazon.nova-lite-v1:0'].[modelId,modelLifecycle.status]" \
+  --output text
+```
+
+Si el modelo de generacion no esta habilitado (o se cambia por otro), ajustar
+`var.model_id` en `terraform/environments/dev` (un solo sitio: es tambien lo que
+acota el permiso `bedrock:InvokeModel`).
+
+### Ejecucion
+
+```
+make deploy      # aplica log group + rol + policy + funcion (~4 recursos)
+```
+
+El `.zip` lo construye Terraform (`data "archive_file"`); no hace falta correr
+`make package` antes. `make package` queda para inspeccionar el zip a mano.
+
+### Invocacion de humo
+
+```
+make invoke                      # usa lambda/tests/events/sample-question.json
+make invoke Q="¿cuantos dias de vacaciones tengo?"
+```
+
+Con la KB todavia vacia (sin ingesta), la respuesta esperada es:
+
+```
+{"answer": "No encontre informacion sobre eso en los documentos.",
+ "sources": [], "used_chunks": 0}
+```
+
+Eso confirma que permisos, env vars y la llamada `Retrieve` funcionan. La
+prueba con respuesta real es la Fase 6.
+
+### Logs
+
+```
+aws logs tail /aws/lambda/rag-serverless-demo-agent --follow
+```
+
+### Verificacion
+
+```
+aws lambda get-function --function-name rag-serverless-demo-agent \
+  --query 'Configuration.{runtime:Runtime,handler:Handler,pkg:PackageType,timeout:Timeout,mem:MemorySize}'
+aws lambda get-function-configuration --function-name rag-serverless-demo-agent \
+  --query 'Environment.Variables'
+aws iam get-role-policy --role-name rag-serverless-demo-agent-exec \
+  --policy-name rag-serverless-demo-agent-policy
+```
+
+Esperado: `PackageType = Zip`, runtime `python3.13`, handler
+`agent.handler.lambda_handler`; env vars con `KNOWLEDGE_BASE_ID` y `MODEL_ID`;
+policy con 3 statements acotados (logs sobre su log group, `bedrock:InvokeModel`
+sobre el modelo, `bedrock:Retrieve` sobre la KB), sin `"*"`.
