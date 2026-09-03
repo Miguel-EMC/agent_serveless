@@ -100,9 +100,9 @@ Los archivos entre paréntesis todavía no existen: se crean en la fase indicada
 | Fase | Cambio OpenSpec | Capabilities que toca |
 |------|-----------------|-----------------------|
 | 0 | (commit `2c4075c`, previo a OpenSpec) | -- |
-| 0.5 | `establish-repo-structure` | -- (estructura/tooling, `skip_specs`) |
-| 1 | `add-remote-state-backend` | `infra-reproducibility` |
-| 2 | `add-document-and-vector-stores` | `document-ingestion` |
+| 0.5 | `establish-repo-structure` ✔ archivado | -- (estructura/tooling, `skip_specs`) |
+| 1 | `add-remote-state-backend` ✔ archivado | `infra-reproducibility` |
+| 2 | `add-document-and-vector-stores` ✔ hecho | `document-ingestion`, `infra-reproducibility` |
 | 3 | `add-bedrock-knowledge-base` | `document-ingestion`, `semantic-retrieval` |
 | 4 | `add-agent-lambda` | `semantic-retrieval`, `answer-generation` |
 | 5 | `deploy-agent-lambda` | `infra-reproducibility` |
@@ -121,3 +121,15 @@ los criterios de aceptación.
 - Lambda en Python puro con boto3; sin LangChain / LangGraph / LlamaIndex.
 - Empaquetado `.zip` estándar; sin Docker / ECR.
 - Caso de uso 100% ficticio (regla de confidencialidad en `openspec/config.yaml`).
+
+## Caveats conocidos
+
+- **VPC**: el stack `environments/dev/` asume que la cuenta tiene su **VPC
+  default** en `us-east-1` (el módulo `rds-pgvector` construye el
+  `db_subnet_group` desde sus subredes). Si se borrara, hay que añadir un módulo
+  `network` con una VPC mínima (ver `add-document-and-vector-stores/design.md`
+  DD1).
+- **RDS `publicly_accessible = true`**: la instancia tiene endpoint público pero
+  el Security Group no abre `0.0.0.0/0` — el acceso real lo controla el SG
+  (solo la Lambda + un `admin_cidr` opcional). Endurecer a privado + bastión es
+  trabajo post-demo.

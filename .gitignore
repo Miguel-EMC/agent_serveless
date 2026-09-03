@@ -30,6 +30,10 @@ lambda/dist/
 .env
 .env.*
 
+# tfvars por-entorno: puede contener valores locales (p. ej. la IP del operador).
+# Se versiona solo el .example.
+terraform/environments/*/terraform.tfvars
+
 # OS / editor
 .DS_Store
 .idea/

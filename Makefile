@@ -18,8 +18,9 @@ bootstrap: ## Crea el remote state (bucket S3 + tabla DynamoDB)
 	terraform -chdir=terraform/bootstrap init
 	terraform -chdir=terraform/bootstrap apply
 
-deploy: ## terraform apply del stack principal
-	@echo "TODO: Fase 5 - cd terraform/environments/dev && terraform init && terraform apply"
+deploy: ## terraform apply del stack principal (environments/dev)
+	terraform -chdir=terraform/environments/dev init
+	terraform -chdir=terraform/environments/dev apply
 
 package: ## Construye el .zip del Lambda
 	@echo "TODO: Fase 5 - scripts/package-lambda.sh"
@@ -28,7 +29,7 @@ invoke: ## Invoca el Lambda con un evento de ejemplo
 	@echo "TODO: Fase 6 - scripts/invoke-lambda.sh"
 
 destroy: ## terraform destroy del stack principal (conserva el bootstrap)
-	@echo "TODO: Fase 7 - cd terraform/environments/dev && terraform destroy"
+	terraform -chdir=terraform/environments/dev destroy
 
 reproduce: ## destroy + apply + prueba e2e, cronometrado
 	@echo "TODO: Fase 7 - destroy + apply desde cero + repetir prueba e2e"

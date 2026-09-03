@@ -1,0 +1,5 @@
+schema: spec-driven
+created: 2026-09-02
+goal: "Modulos s3-documents y rds-pgvector: bucket privado de documentos fuente
+  + PostgreSQL con pgvector como vector store, cableados en environments/dev con
+  el primer init del stack"

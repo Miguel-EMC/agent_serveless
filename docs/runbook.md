@@ -98,3 +98,96 @@ Tras crear el bucket, se podría correr `terraform -chdir=terraform/bootstrap
 init -migrate-state` con un `backend "s3"` para que el propio bootstrap deje de
 usar state local. Es más "puro" pero añade un paso frágil y acopla el bootstrap
 a su output; en este proyecto se prefiere el `.tfstate` versionado.
+
+---
+
+## Fase 2 - Almacenes: documentos (S3) y base vectorial (RDS + pgvector)
+
+Crea el bucket de documentos y la instancia PostgreSQL con `pgvector`. Es el
+primer `apply` del stack `terraform/environments/dev/` (usa el backend `s3` de
+la Fase 1).
+
+### Pre-check
+
+1. Poner tu IP pública en `terraform/environments/dev/terraform.tfvars`:
+
+   ```
+   admin_cidr = "$(curl -s ifconfig.me)/32"
+   ```
+
+   Sin esto la base de datos no acepta ninguna conexión y no se puede instalar
+   `pgvector`.
+
+2. `aws sts get-caller-identity` con el perfil correcto (`AWS_PROFILE=personal`).
+
+### Permisos mínimos adicionales
+
+Sobre los de la Fase 1, en `us-east-1`: `s3:*` sobre el bucket de documentos;
+`rds:CreateDBInstance/CreateDBSubnetGroup/CreateDBParameterGroup` +
+`rds:Describe*` + `rds:AddTagsToResource`; `ec2:CreateSecurityGroup` +
+`ec2:AuthorizeSecurityGroup*` + `ec2:Describe*`;
+`secretsmanager:CreateSecret/GetSecretValue/TagResource` (RDS crea y gestiona el
+secreto de la contraseña).
+
+### Ejecución
+
+```
+make deploy
+# equivale a:
+#   terraform -chdir=terraform/environments/dev init
+#   terraform -chdir=terraform/environments/dev apply
+```
+
+Terraform muestra el plan (14 recursos: bucket + 7 configs/objetos, instancia
+RDS + subnet group + parameter group + security group + reglas) y pide `yes`.
+La instancia RDS tarda ~5-10 min.
+
+> El comando emite un aviso de deprecación de `dynamodb_table`. Es cosmético:
+> Terraform >= 1.11 prefiere `use_lockfile` (locking nativo de S3), pero la
+> arquitectura decidida usa la tabla DynamoDB y se mantiene a propósito.
+
+### Setup de pgvector (una vez, tras el apply)
+
+```
+DEV=terraform/environments/dev
+HOST=$(terraform -chdir=$DEV output -raw db_host)
+SECRET_ARN=$(terraform -chdir=$DEV output -raw db_secret_arn)
+
+# Contraseña gestionada por RDS -> Secrets Manager
+PGPASSWORD=$(aws secretsmanager get-secret-value --secret-id "$SECRET_ARN" \
+  --query SecretString --output text | python3 -c 'import sys,json;print(json.load(sys.stdin)["password"])')
+
+export PGPASSWORD
+psql "host=$HOST port=5432 dbname=ragdb user=ragadmin sslmode=require" \
+  -c "CREATE EXTENSION IF NOT EXISTS vector;"
+psql "host=$HOST port=5432 dbname=ragdb user=ragadmin sslmode=require" -c "\dx"
+unset PGPASSWORD
+```
+
+Sin `psql` local:
+
+```
+docker run --rm -e PGPASSWORD -e HOST postgres:16 \
+  psql "host=$HOST port=5432 dbname=ragdb user=ragadmin sslmode=require" \
+  -c "CREATE EXTENSION IF NOT EXISTS vector;"
+```
+
+`\dx` debe listar `vector`.
+
+### Verificación en AWS
+
+```
+aws rds describe-db-instances --db-instance-identifier rag-serverless-demo-pgvector \
+  --query 'DBInstances[0].{Class:DBInstanceClass,Encrypted:StorageEncrypted,MultiAZ:MultiAZ,Public:PubliclyAccessible,Status:DBInstanceStatus}'
+aws ec2 describe-security-groups --filters Name=group-name,Values=rag-serverless-demo-db \
+  --query 'SecurityGroups[0].IpPermissions'   # ninguna regla con 0.0.0.0/0 en 5432
+```
+
+### Al terminar la sesión de trabajo
+
+```
+make destroy   # borra bucket de docs, RDS, secreto, SG, subnet group
+```
+
+El bootstrap de la Fase 1 **no se toca**. La instancia RDS corriendo suma horas
+de free tier.
