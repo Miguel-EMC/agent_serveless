@@ -103,6 +103,13 @@ a su output; en este proyecto se prefiere el `.tfstate` versionado.
 
 ## Fase 2 - Almacenes: documentos (S3) y base vectorial (RDS + pgvector)
 
+> **OBSOLETO desde la Fase 3a.** El RDS `db.t3.micro` + pgvector se retiró: el
+> Bedrock Knowledge Base gestionado no puede usar un RDS estándar como vector
+> store (exige la RDS Data API, exclusiva de Aurora). El vector store pasó a
+> **Amazon S3 Vectors** (ver "Fase 3"). De esta sección solo sigue vigente el
+> **bucket de documentos**; toda la parte de RDS, security groups, Secrets
+> Manager y el setup de `pgvector` con `psql` ya no aplica.
+
 Crea el bucket de documentos y la instancia PostgreSQL con `pgvector`. Es el
 primer `apply` del stack `terraform/environments/dev/` (usa el backend `s3` de
 la Fase 1).

@@ -1,5 +1,2 @@
 # Copiar a terraform.tfvars y ajustar. Valores NO secretos.
-
-# CIDR de administración con acceso al 5432 de la BD para el setup de pgvector.
-# Usar la IP pública propia en /32. Nunca 0.0.0.0/0.
-admin_cidr = "203.0.113.10/32"
+# Por ahora el stack dev no necesita variables más allá de los defaults.

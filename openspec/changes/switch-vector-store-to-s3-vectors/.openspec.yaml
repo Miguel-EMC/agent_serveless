@@ -1,0 +1,5 @@
+schema: spec-driven
+created: 2026-09-03
+goal: "Retirar RDS/pgvector como vector store: destruir la instancia, borrar el
+  modulo rds-pgvector y su cableado, subir el provider a ~> 6.0; el vector store
+  pasa a S3 Vectors (implementado en add-bedrock-knowledge-base)"

@@ -48,5 +48,5 @@
 
 - [x] 7.1 `openspec validate add-document-and-vector-stores --strict` pasa
 - [x] 7.2 `git status`: entran los `.tf` de módulos y stack, `.terraform.lock.hcl`, `terraform.tfvars.example`, `Makefile`, docs; NO entra ningún `.terraform/`, ni `terraform.tfstate` del stack, ni `terraform.tfvars` (gitignored)
-- [ ] 7.3 Commit único "Fase 2: modulos s3-documents y rds-pgvector + init del stack dev" con la línea `Co-Authored-By`; `git status` limpio
-- [ ] 7.4 Archivar con `/openspec-archive-change add-document-and-vector-stores` (sincroniza `document-ingestion` nuevo + delta de `infra-reproducibility`)
+- [x] 7.3 Commit único "Fase 2: modulos s3-documents y rds-pgvector + init del stack dev" con la línea `Co-Authored-By`; `git status` limpio
+- [x] 7.4 Archivar con `/openspec-archive-change add-document-and-vector-stores` (sincroniza `document-ingestion` nuevo + delta de `infra-reproducibility`)

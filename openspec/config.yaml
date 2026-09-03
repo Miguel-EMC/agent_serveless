@@ -10,8 +10,11 @@ context: |
   - S3: documentos fuente del caso de uso ficticio.
   - Amazon Bedrock Knowledge Base: ingesta + chunking (512 tokens, 20% overlap),
     embeddings con Amazon Titan Text Embeddings.
-  - RDS PostgreSQL + pgvector como vector store (free tier: db.t3.micro, 20GB).
-    NO Aurora, NO OpenSearch Serverless.
+  - Vector store: Amazon S3 Vectors (servicio gestionado, sin instancia de BD,
+    escala a cero). Decidido tras la Fase 3a: el Bedrock KB gestionado NO puede
+    usar un RDS PostgreSQL estándar (exige RDS Data API = solo Aurora), y Aurora
+    se descartó por costo. NO OpenSearch Serverless. La Fase 2 llegó a levantar
+    un RDS+pgvector que luego se retiró.
   - AWS Lambda: orquesta el agente en Python puro con boto3 (el SDK de Bedrock
     es parte de boto3). SIN LangChain / LangGraph / LlamaIndex — cada paso
     (retrieval, prompt, llamada al modelo) es código explícito y visible.
@@ -27,9 +30,10 @@ context: |
   - Remote state en S3 + locking con DynamoDB. El bootstrap del remote state es
     una raíz Terraform separada, con state local (su .tfstate se commitea; no
     tiene secretos). El stack principal sí usa backend "s3".
-  - Un módulo propio por servicio (s3-documents, rds-pgvector, bedrock-kb,
-    agent-lambda, iam). Los roles IAM se co-locan en el módulo del servicio al
-    que sirven; `modules/iam` queda solo para lo transversal.
+  - Un módulo propio por servicio (s3-documents, bedrock-kb, agent-lambda, iam).
+    Los roles IAM se co-locan en el módulo del servicio al que sirven;
+    `modules/iam` queda solo para lo transversal.
+  - Provider AWS `~> 6.0` (S3 Vectors necesita v6.27+).
   - IAM de mínimo privilegio en cada rol. NUNCA `Action: "*"`.
   - La prueba real de que la infra está bien hecha: `terraform destroy` de todo
     el stack (menos el bootstrap) y volver a levantarlo desde cero.
@@ -43,7 +47,7 @@ context: |
 rules:
   proposal:
     - "REGLA DE CONFIDENCIALIDAD (nunca romper): el caso de uso es 100% ficticio. Cero arquitectura interna, datos o nombres reales de ningún empleador. Si algo se ve específico de una empresa real, preguntar antes de escribirlo."
-    - "No proponer alternativas a la arquitectura ya decidida (S3 + Bedrock KB + RDS/pgvector + Lambda Python puro). El alcance es construirla, no cuestionarla."
+    - "No proponer alternativas a la arquitectura ya decidida (S3 + Bedrock KB + S3 Vectors + Lambda Python puro). El alcance es construirla, no cuestionarla — salvo incompatibilidad real como la de RDS/Data API de la Fase 3."
     - "Cada fase es un cambio pequeño y aprobable en una sesión; no agrupar varias fases en una propuesta."
   design:
     - "Documentar siempre las alternativas consideradas y por qué se descartaron, sobre todo en integraciones poco documentadas (ej. Bedrock KB con RDS como vector store)."

@@ -7,7 +7,7 @@ El *por qué* detallado de cada decisión está en
 ## Componentes AWS (recordatorio)
 
 ```
-Documentos (S3) --> Bedrock Knowledge Base --> RDS PostgreSQL + pgvector
+Documentos (S3) --> Bedrock Knowledge Base --> S3 Vectors (vector store)
                                                        |
                                                        v
                            Lambda (Python + boto3) --> Bedrock (modelo)
@@ -15,6 +15,10 @@ Documentos (S3) --> Bedrock Knowledge Base --> RDS PostgreSQL + pgvector
                                                        v
                                      Respuesta con cita de la fuente
 ```
+
+> El vector store es **Amazon S3 Vectors**, no RDS/pgvector: el Bedrock KB
+> gestionado exige la RDS Data API (solo Aurora) para hablar con PostgreSQL.
+> Ver `openspec/changes/archive/*-switch-vector-store-to-s3-vectors/`.
 
 API Gateway solo se menciona como paso de producción; no se implementa en la
 demo (el Lambda se invoca directo por consola o AWS CLI).
@@ -41,9 +45,7 @@ agent_serveless/
 |   |
 |   +-- modules/                    # reutilizables -- sin bloques provider/backend
 |   |   +-- s3-documents/           # bucket de documentos fuente
-|   |   +-- rds-pgvector/           # instancia PostgreSQL + extension pgvector
-|   |   |   +-- sql/enable-pgvector.sql
-|   |   +-- bedrock-kb/             # Knowledge Base + su rol IAM de servicio
+|   |   +-- bedrock-kb/             # S3 Vectors + Knowledge Base + su rol IAM (Fase 3b)
 |   |   +-- agent-lambda/           # funcion Lambda + su rol de ejecucion
 |   |   +-- iam/                    # SOLO lo transversal (puede quedar vacio)
 |   |
@@ -103,7 +105,8 @@ Los archivos entre paréntesis todavía no existen: se crean en la fase indicada
 | 0.5 | `establish-repo-structure` ✔ archivado | -- (estructura/tooling, `skip_specs`) |
 | 1 | `add-remote-state-backend` ✔ archivado | `infra-reproducibility` |
 | 2 | `add-document-and-vector-stores` ✔ hecho | `document-ingestion`, `infra-reproducibility` |
-| 3 | `add-bedrock-knowledge-base` | `document-ingestion`, `semantic-retrieval` |
+| 3a | `switch-vector-store-to-s3-vectors` | `document-ingestion`, `infra-reproducibility` (retira RDS; provider v6) |
+| 3b | `add-bedrock-knowledge-base` | `document-ingestion`, `semantic-retrieval` (S3 Vectors + KB) |
 | 4 | `add-agent-lambda` | `semantic-retrieval`, `answer-generation` |
 | 5 | `deploy-agent-lambda` | `infra-reproducibility` |
 | 6 + 7 | `prove-end-to-end` | valida todas (specs = criterios de aceptación de `infra-reproducibility`) |
@@ -124,12 +127,7 @@ los criterios de aceptación.
 
 ## Caveats conocidos
 
-- **VPC**: el stack `environments/dev/` asume que la cuenta tiene su **VPC
-  default** en `us-east-1` (el módulo `rds-pgvector` construye el
-  `db_subnet_group` desde sus subredes). Si se borrara, hay que añadir un módulo
-  `network` con una VPC mínima (ver `add-document-and-vector-stores/design.md`
-  DD1).
-- **RDS `publicly_accessible = true`**: la instancia tiene endpoint público pero
-  el Security Group no abre `0.0.0.0/0` — el acceso real lo controla el SG
-  (solo la Lambda + un `admin_cidr` opcional). Endurecer a privado + bastión es
-  trabajo post-demo.
+- **Provider AWS `~> 6.0`**: desde la Fase 3a (S3 Vectors necesita v6.27+).
+- **Sin base de datos**: el vector store es S3 Vectors, servicio gestionado sin
+  instancia, sin VPC ni security groups. Los caveats de VPC default y de
+  `RDS publicly_accessible` de la Fase 2 ya no aplican (RDS retirado en 3a).
