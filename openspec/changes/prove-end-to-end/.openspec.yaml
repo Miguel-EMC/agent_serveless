@@ -1,0 +1,5 @@
+schema: spec-driven
+created: 2026-09-03
+goal: "Prueba end-to-end (Fase 6) y de reproducibilidad (Fase 7): documentos
+  ficticios, ingesta, invocacion con pregunta real y verificacion de cita; luego
+  destroy + re-apply + re-test cronometrado"

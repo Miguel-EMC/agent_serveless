@@ -326,3 +326,99 @@ Esperado: `PackageType = Zip`, runtime `python3.13`, handler
 `agent.handler.lambda_handler`; env vars con `KNOWLEDGE_BASE_ID` y `MODEL_ID`;
 policy con 3 statements acotados (logs sobre su log group, `bedrock:InvokeModel`
 sobre el modelo, `bedrock:Retrieve` sobre la KB), sin `"*"`.
+
+---
+
+## Fase 6 - Prueba end-to-end
+
+Con el stack desplegado (Fase 5), se prueba que el sistema responde de verdad
+citando la fuente correcta.
+
+### 1. Subir el corpus ficticio
+
+```
+DEV=terraform/environments/dev
+BUCKET=$(terraform -chdir=$DEV output -raw documents_bucket_name)
+aws s3 cp sample-data/fictional-corp/ "s3://$BUCKET/raw/" --recursive
+aws s3 ls "s3://$BUCKET/raw/"
+```
+
+### 2. Ingesta
+
+```
+scripts/sync-knowledge-base.sh      # dispara start-ingestion-job y espera COMPLETE
+```
+
+Si sale `FAILED`, revisar las estadisticas que imprime y el motivo (formato del
+documento, permisos del rol de la KB) antes de reintentar.
+
+### 3. Preguntas de prueba
+
+```
+make invoke Q="¿Cuantos dias de vacaciones tengo al ano?"
+make invoke Q="¿En cuantos dias se reembolsan los gastos de viaje?"
+make invoke Q="¿Cuantos dias a la semana puedo trabajar desde casa?"
+make invoke Q="¿Cual es la politica de coche de empresa?"
+```
+
+Esperado:
+
+| Pregunta | `sources` debe incluir | Respuesta |
+|----------|------------------------|-----------|
+| vacaciones | `raw/vacation-policy.md` | 23 dias habiles |
+| gastos de viaje | `raw/expense-policy.md` | dentro de 30 dias |
+| trabajo desde casa | `raw/remote-work-policy.md` | hasta 3 dias/semana |
+| coche de empresa | (ninguno) | "No encontre informacion..." |
+
+Anotar las respuestas reales en `docs/cost-estimate.md`.
+
+### Si `Retrieve` da `ThrottlingException`
+
+1. Reintentar espaciado: el rate-limit inicial de una KB nueva suele relajarse
+   en minutos/horas.
+2. Si persiste: Service Quotas -> Amazon Bedrock -> cuota de consultas a
+   knowledge base / `Retrieve`, pedir aumento.
+3. Plan C para la charla: mostrar el paso con la CLI directa
+   `aws bedrock-agent-runtime retrieve --knowledge-base-id <id> --retrieval-query '{"text":"..."}'`.
+
+### Logs de la invocacion
+
+```
+aws logs tail /aws/lambda/rag-serverless-demo-agent --since 10m
+```
+
+---
+
+## Fase 7 - Prueba de reproducibilidad
+
+Destruir el stack `dev` y volver a levantarlo desde cero. **El bootstrap de la
+Fase 1 NO se toca.**
+
+```
+time make reproduce
+```
+
+`make reproduce` hace `terraform destroy` + `terraform apply` del stack `dev`
+(-auto-approve). Luego, a mano:
+
+```
+aws s3 cp sample-data/fictional-corp/ "s3://$(terraform -chdir=terraform/environments/dev output -raw documents_bucket_name)/raw/" --recursive
+scripts/sync-knowledge-base.sh
+# repetir las 4 preguntas de la Fase 6
+```
+
+### Qué mirar si algo no reconstruye limpio
+
+- `terraform -chdir=terraform/environments/dev state list` vs lo que hay en AWS:
+  algun recurso que quedo huerfano tras el destroy (el vector bucket tiene
+  `force_destroy = true` y el data source `data_deletion_policy = DELETE`, asi
+  que deberia salir limpio).
+- Un `apply` que falla por una dependencia (p. ej. el indice de S3 Vectors
+  antes que el vector bucket): reportar el recurso y el orden.
+- El nombre del bucket de documentos cambia en cada apply (`random_id`): es
+  esperado; el output y el `aws s3 cp` lo resuelven.
+
+### Registrar
+
+En `docs/cost-estimate.md`: el tiempo total (`time make reproduce` + tiempo de
+ingesta + re-test) y si hubo que corregir algo a mano.

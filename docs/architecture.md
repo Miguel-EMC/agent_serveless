@@ -109,7 +109,7 @@ Los archivos entre paréntesis todavía no existen: se crean en la fase indicada
 | 3b | `add-bedrock-knowledge-base` ✔ hecho | `document-ingestion`, `semantic-retrieval` (S3 Vectors + KB) |
 | 4 | `add-agent-lambda` ✔ hecho | `semantic-retrieval`, `answer-generation` |
 | 5 | `deploy-agent-lambda` ✔ hecho | `infra-reproducibility` |
-| 6 + 7 | `prove-end-to-end` | valida todas (specs = criterios de aceptación de `infra-reproducibility`) |
+| 6 + 7 | `prove-end-to-end` ✔ guion listo (ejecución por Miguel) | `semantic-retrieval`, `answer-generation`, `infra-reproducibility` (criterios de aceptación) |
 
 Fases 6 y 7 (prueba e2e + reproducibilidad) se juntan en un solo cambio porque
 no aportan una capability nueva: son ejercicios de validación cuyos specs son

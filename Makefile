@@ -31,5 +31,11 @@ invoke: ## Invoca el Lambda con el evento de ejemplo (o: make invoke Q="tu pregu
 destroy: ## terraform destroy del stack principal (conserva el bootstrap)
 	terraform -chdir=terraform/environments/dev destroy
 
-reproduce: ## destroy + apply + prueba e2e, cronometrado
-	@echo "TODO: Fase 7 - destroy + apply desde cero + repetir prueba e2e"
+reproduce: ## destroy + apply del stack dev (luego re-ingesta + re-test a mano)
+	terraform -chdir=terraform/environments/dev destroy -auto-approve
+	terraform -chdir=terraform/environments/dev apply -auto-approve
+	@echo ""
+	@echo ">> Ahora, a mano:"
+	@echo "   aws s3 cp sample-data/fictional-corp/ s3://\$$(terraform -chdir=terraform/environments/dev output -raw documents_bucket_name)/raw/ --recursive"
+	@echo "   scripts/sync-knowledge-base.sh"
+	@echo "   make invoke Q=\"...\"   (repetir las preguntas de la Fase 6)"
