@@ -107,7 +107,7 @@ Los archivos entre paréntesis todavía no existen: se crean en la fase indicada
 | 2 | `add-document-and-vector-stores` ✔ hecho | `document-ingestion`, `infra-reproducibility` |
 | 3a | `switch-vector-store-to-s3-vectors` | `document-ingestion`, `infra-reproducibility` (retira RDS; provider v6) |
 | 3b | `add-bedrock-knowledge-base` ✔ hecho | `document-ingestion`, `semantic-retrieval` (S3 Vectors + KB) |
-| 4 | `add-agent-lambda` | `semantic-retrieval`, `answer-generation` |
+| 4 | `add-agent-lambda` ✔ hecho | `semantic-retrieval`, `answer-generation` |
 | 5 | `deploy-agent-lambda` | `infra-reproducibility` |
 | 6 + 7 | `prove-end-to-end` | valida todas (specs = criterios de aceptación de `infra-reproducibility`) |
 
@@ -124,6 +124,30 @@ los criterios de aceptación.
 - Lambda en Python puro con boto3; sin LangChain / LangGraph / LlamaIndex.
 - Empaquetado `.zip` estándar; sin Docker / ECR.
 - Caso de uso 100% ficticio (regla de confidencialidad en `openspec/config.yaml`).
+
+## Flujo del agente (Lambda, Fase 4)
+
+```
+evento {"question": "..."}  (sin API Gateway)
+        |
+        v
+  1. validar question
+  2. retrieval.retrieve()  --> bedrock-agent-runtime Retrieve (top_k, umbral min_score)
+        |                      (Retrieve, NO RetrieveAndGenerate: cada paso visible)
+        v
+  3. sin chunks  --> "No encontré información..."  (no se llama al modelo)
+     con chunks  --> prompt.build_messages()  (contexto numerado [1]..[n])
+        |
+        v
+  4. generation.generate()  --> bedrock-runtime Converse (MODEL_ID, maxTokens 512, temp 0.2)
+        |
+        v
+  5. {"answer", "sources": [{document, score}], "used_chunks"}
+```
+
+Config por env vars (las pone el módulo Lambda en la Fase 5): `KNOWLEDGE_BASE_ID`,
+`MODEL_ID` (default `amazon.nova-lite-v1:0`), `TOP_K` (5), `MIN_SCORE` (0.4).
+Solo `boto3` + stdlib.
 
 ## Caveats conocidos
 

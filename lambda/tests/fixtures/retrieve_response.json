@@ -1,0 +1,19 @@
+{
+  "retrievalResults": [
+    {
+      "content": { "text": "Los empleados tienen 22 días hábiles de vacaciones al año, que se solicitan con dos semanas de antelación en el portal interno." },
+      "location": { "type": "S3", "s3Location": { "uri": "s3://rag-serverless-demo-docs-483f7fb2/raw/vacation-policy.md" } },
+      "score": 0.81
+    },
+    {
+      "content": { "text": "El periodo de vacaciones no utilizado puede acumularse hasta un máximo de 5 días para el año siguiente." },
+      "location": { "type": "S3", "s3Location": { "uri": "s3://rag-serverless-demo-docs-483f7fb2/raw/vacation-policy.md" } },
+      "score": 0.63
+    },
+    {
+      "content": { "text": "Los gastos de viaje se reembolsan contra factura dentro de los 30 días." },
+      "location": { "type": "S3", "s3Location": { "uri": "s3://rag-serverless-demo-docs-483f7fb2/raw/expense-policy.md" } },
+      "score": 0.19
+    }
+  ]
+}

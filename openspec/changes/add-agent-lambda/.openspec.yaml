@@ -1,0 +1,4 @@
+schema: spec-driven
+created: 2026-09-03
+goal: "Codigo Python del agente Lambda: Retrieve contra la KB, armado de prompt,
+  Bedrock Converse, respuesta citando la fuente. Solo boto3 + stdlib."
