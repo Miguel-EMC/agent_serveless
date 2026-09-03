@@ -96,8 +96,8 @@ configuración de backend), y un `terraform destroy` seguido de un nuevo
 
 - **WHEN** se clona el repo, se corre `terraform init` del stack `dev` contra el
   backend `s3` y luego `terraform apply`
-- **THEN** se crean todos los recursos del stack (bucket de documentos, base
-  vectorial, secreto, grupos de seguridad y subredes asociadas)
+- **THEN** se crean todos los recursos del stack (bucket de documentos y, según
+  la fase, el vector store gestionado y la Knowledge Base)
 - **AND** no se crea ningún archivo de state local para el stack
 
 #### Scenario: Destroy y re-apply del stack
