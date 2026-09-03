@@ -106,7 +106,7 @@ Los archivos entre paréntesis todavía no existen: se crean en la fase indicada
 | 1 | `add-remote-state-backend` ✔ archivado | `infra-reproducibility` |
 | 2 | `add-document-and-vector-stores` ✔ hecho | `document-ingestion`, `infra-reproducibility` |
 | 3a | `switch-vector-store-to-s3-vectors` | `document-ingestion`, `infra-reproducibility` (retira RDS; provider v6) |
-| 3b | `add-bedrock-knowledge-base` | `document-ingestion`, `semantic-retrieval` (S3 Vectors + KB) |
+| 3b | `add-bedrock-knowledge-base` ✔ hecho | `document-ingestion`, `semantic-retrieval` (S3 Vectors + KB) |
 | 4 | `add-agent-lambda` | `semantic-retrieval`, `answer-generation` |
 | 5 | `deploy-agent-lambda` | `infra-reproducibility` |
 | 6 + 7 | `prove-end-to-end` | valida todas (specs = criterios de aceptación de `infra-reproducibility`) |
@@ -131,3 +131,7 @@ los criterios de aceptación.
 - **Sin base de datos**: el vector store es S3 Vectors, servicio gestionado sin
   instancia, sin VPC ni security groups. Los caveats de VPC default y de
   `RDS publicly_accessible` de la Fase 2 ya no aplican (RDS retirado en 3a).
+- **`embedding_dimension = 1024`** (Titan Text Embeddings v2): es **inmutable**
+  en el índice de S3 Vectors. Cambiarla obliga a recrear índice + KB + re-ingestar.
+- **Model access de Titan**: el modelo `amazon.titan-embed-text-v2:0` debe estar
+  habilitado en Bedrock para la cuenta (verificado `ACTIVE` en 034703319129).

@@ -1,0 +1,5 @@
+schema: spec-driven
+created: 2026-09-03
+goal: "Modulo bedrock-kb: S3 Vectors (bucket + indice) + Bedrock Knowledge Base
+  con Titan Embeddings v2 + data source S3 (raw/, chunking 512/20%) + rol IAM de
+  minimo privilegio; cableado en environments/dev"

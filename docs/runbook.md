@@ -198,3 +198,64 @@ make destroy   # borra bucket de docs, RDS, secreto, SG, subnet group
 
 El bootstrap de la Fase 1 **no se toca**. La instancia RDS corriendo suma horas
 de free tier.
+
+---
+
+## Fase 3 - Bedrock Knowledge Base + S3 Vectors
+
+Crea el vector store (S3 Vectors), la Knowledge Base con Titan Text Embeddings
+v2, su data source S3 (`raw/`, chunking 512/20%) y su rol IAM de minimo
+privilegio. No ingesta nada todavia (eso es la Fase 6).
+
+### Pre-check
+
+```
+# El modelo de embeddings debe estar habilitado (los de Amazon suelen estarlo)
+aws bedrock list-foundation-models \
+  --query "modelSummaries[?modelId=='amazon.titan-embed-text-v2:0'].[modelId,modelLifecycle.status]" \
+  --output text
+```
+
+Si el `apply` falla luego con `AccessDeniedException` sobre el modelo, habilitar
+"Titan Text Embeddings V2" en la consola de Bedrock -> Model access, y
+reintentar.
+
+### Ejecucion
+
+```
+make deploy      # terraform -chdir=terraform/environments/dev init + apply
+```
+
+Plan esperado: 6 recursos nuevos (vector bucket, indice, rol + policy, KB, data
+source), 0 destroy. La KB tarda ~1-2 min en quedar ACTIVE.
+
+### Verificacion
+
+```
+DEV=terraform/environments/dev
+KB=$(terraform -chdir=$DEV output -raw knowledge_base_id)
+DS=$(terraform -chdir=$DEV output -raw data_source_id)
+
+aws bedrock-agent get-knowledge-base --knowledge-base-id $KB \
+  --query 'knowledgeBase.{status:status,storage:storageConfiguration.type}'
+aws bedrock-agent get-data-source --knowledge-base-id $KB --data-source-id $DS \
+  --query 'dataSource.{chunking:vectorIngestionConfiguration.chunkingConfiguration,prefixes:dataSourceConfiguration.s3Configuration.inclusionPrefixes,del:dataDeletionPolicy}'
+aws s3vectors get-index --vector-bucket-name rag-serverless-demo-vectors \
+  --index-name rag-serverless-demo-kb-index
+aws iam get-role-policy --role-name rag-serverless-demo-kb-role \
+  --policy-name rag-serverless-demo-kb-policy
+```
+
+Esperado: KB `status = ACTIVE`, `storage = S3_VECTORS`; data source con chunking
+`FIXED_SIZE` 512/20, prefijo `raw/`, `dataDeletionPolicy = DELETE`; indice
+`dimension = 1024`, `distanceMetric = cosine`, `AMAZON_BEDROCK_TEXT` y
+`AMAZON_BEDROCK_METADATA` no filtrables; la policy del rol sin `"*"` en Action ni
+Resource.
+
+### Ingesta
+
+Se corre en la Fase 6, con documentos ya subidos a `raw/`:
+
+```
+scripts/sync-knowledge-base.sh
+```
